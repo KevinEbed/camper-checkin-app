@@ -37,6 +37,7 @@ if uploaded_file:
                 f.write(uploaded_file.getbuffer())
 
             st.success("✅ File uploaded and saved successfully.")
+            st.write(f"📁 File saved at: {shared_path}")
 
             # Display campers per camp
             selected_camp = st.selectbox("View campers by camp", sorted(df["Camp"].dropna().unique()))
