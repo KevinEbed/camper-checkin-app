@@ -5,13 +5,12 @@ import os
 
 # ------------------ Page Config ------------------ #
 st.set_page_config(page_title="Camper Check-in", page_icon="🎒", layout="centered")
-
 st.title("🎒 Camper Check-in")
 
 # ------------------ Load Camper Data ------------------ #
-excel_file = st.session_state.get("uploaded_file_path")
+excel_file = os.path.join("uploaded_files", "latest_camper_data.xlsx")
 
-if not excel_file or not os.path.exists(excel_file):
+if not os.path.exists(excel_file):
     st.error("❌ Camper data file not found. Please contact the admin.")
     st.stop()
 
