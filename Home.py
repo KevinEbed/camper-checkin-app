@@ -1,28 +1,52 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import os
 
-st.set_page_config(page_title="Camper Check-in", layout="centered")
+# ------------------ Page Config ------------------ #
+st.set_page_config(page_title="Camper Check-in", page_icon="🎒", layout="centered")
+
 st.title("🎒 Camper Check-in")
 
-uploaded_file = st.file_uploader("Upload the Camper Excel File (.xlsx)", type=["xlsx"])
+# ------------------ Load Camper Data ------------------ #
+excel_file = "camper_data.xlsx"
 
-if uploaded_file:
-    df = pd.read_excel(uploaded_file)
+if not os.path.exists(excel_file):
+    st.error("❌ Camper data file not found. Please contact the admin.")
+    st.stop()
 
-    required_cols = {"Name", "Camp", "Status", "Check-in Time"}
-    if not required_cols.issubset(df.columns):
-        st.error("Excel must include: Name, Camp, Status, Check-in Time")
+try:
+    df = pd.read_excel(excel_file)
+except Exception as e:
+    st.error(f"❌ Error reading camper data file: {e}")
+    st.stop()
+
+# Ensure columns are standardized
+required_columns = ["Name", "Camp", "Status", "Check-in Time"]
+missing_cols = [col for col in required_columns if col not in df.columns]
+
+if missing_cols:
+    st.error(f"❌ Missing columns in data file: {', '.join(missing_cols)}")
+    st.stop()
+
+# ------------------ Camper Check-in Form ------------------ #
+camper_name = st.selectbox("Select Your Name", sorted(df["Name"].dropna().unique()))
+
+if st.button("Check In"):
+    # Find camper row
+    idx = df[df["Name"] == camper_name].index
+
+    if not idx.empty:
+        row = idx[0]
+        if str(df.at[row, "Status"]).lower() == "checked-in":
+            st.warning("⚠️ You are already checked in.")
+        else:
+            df.at[row, "Status"] = "Checked-in"
+            df.at[row, "Check-in Time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            try:
+                df.to_excel(excel_file, index=False)
+                st.success("✅ You have been successfully checked in!")
+            except Exception as e:
+                st.error(f"❌ Error saving check-in: {e}")
     else:
-        selected_camp = st.selectbox("Select your camp", sorted(df["Camp"].unique()))
-        camper_names = df[df["Camp"] == selected_camp]["Name"].tolist()
-        selected_name = st.selectbox("Select your name", camper_names)
-
-        if st.button("✅ Check-in"):
-            idx = df[(df["Name"] == selected_name) & (df["Camp"] == selected_camp)].index[0]
-            if df.at[idx, "Status"] == "Checked-in ✅":
-                st.warning("You have already checked in.")
-            else:
-                df.at[idx, "Status"] = "Checked-in ✅"
-                df.at[idx, "Check-in Time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                st.success(f"{selected_name}, you're checked in!")
+        st.error("❌ Name not found in the camper list.")
