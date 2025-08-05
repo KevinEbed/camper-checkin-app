@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import os
 
 st.set_page_config(page_title="Admin Dashboard", layout="wide")
 st.title("🛠️ Admin Panel")
@@ -18,15 +19,20 @@ if uploaded_file:
     try:
         df = pd.read_excel(uploaded_file)
         required_cols = {"Name", "Camp", "Status", "Check-in Time"}
-        actual_cols = set(df.columns.str.strip())  # Strip whitespace
 
-        # Check for missing columns (case-insensitive, strip whitespace)
+        # Normalize column names
+        df.columns = df.columns.str.strip()
         normalized_df_cols = {col.strip().lower() for col in df.columns}
         normalized_required_cols = {col.lower() for col in required_cols}
 
         if not normalized_required_cols.issubset(normalized_df_cols):
             st.error("❌ Excel must include: Name, Camp, Status, Check-in Time")
         else:
+            # Save uploaded file for camper view (as campers.xlsx)
+            with open("campers.xlsx", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            st.success("✅ File uploaded and saved successfully.")
+
             selected_camp = st.selectbox("View campers by camp", sorted(df["Camp"].unique()))
             filtered_df = df[df["Camp"] == selected_camp]
 
