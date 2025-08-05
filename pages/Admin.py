@@ -1,1 +1,62 @@
+import streamlit as st
+import pandas as pd
+from io import BytesIO
+import os
+from datetime import datetime
 
+# ------------------ Page Config ------------------ #
+st.set_page_config(page_title="Admin Dashboard", page_icon="🛠️", layout="wide")
+st.title("🛠️ Admin Panel")
+
+# ------------------ Password protection ------------------ #
+password = st.text_input("Enter admin password", type="password")
+if password != "admin123":
+    st.warning("Access denied")
+    st.stop()
+
+# ------------------ File uploader ------------------ #
+uploaded_file = st.file_uploader("Upload Camper Excel File (.xlsx)", type=["xlsx"])
+
+if uploaded_file:
+    try:
+        df = pd.read_excel(uploaded_file)
+        required_cols = {"Name", "Camp", "Status", "Check-in Time"}
+
+        # Normalize column names
+        df.columns = df.columns.str.strip()
+        normalized_df_cols = {col.strip().lower() for col in df.columns}
+        normalized_required_cols = {col.lower() for col in required_cols}
+
+        if not normalized_required_cols.issubset(normalized_df_cols):
+            st.error("❌ Excel must include: Name, Camp, Status, Check-in Time")
+        else:
+            # Save file to a shared path
+            os.makedirs("uploaded_files", exist_ok=True)
+            shared_path = os.path.join("uploaded_files", "latest_camper_data.xlsx")
+            with open(shared_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            st.success("✅ File uploaded and saved successfully.")
+            st.write(f"📁 File saved at: {shared_path}")
+
+            # Display campers per camp
+            selected_camp = st.selectbox("View campers by camp", sorted(df["Camp"].dropna().unique()))
+            filtered_df = df[df["Camp"] == selected_camp]
+
+            st.write(f"### Campers in {selected_camp}")
+            st.dataframe(filtered_df)
+
+            # Download button for updated sheet
+            buffer = BytesIO()
+            df.to_excel(buffer, index=False, engine='openpyxl')
+            buffer.seek(0)
+
+            st.download_button(
+                label="⬇️ Download Updated Sheet",
+                data=buffer,
+                file_name="updated_checkins.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+    except Exception as e:
+        st.error(f"⚠️ Error reading file: {e}")
