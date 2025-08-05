@@ -8,21 +8,20 @@ st.set_page_config(page_title="Camper Check-in", page_icon="🎒", layout="cente
 
 st.title("🎒 Camper Check-in")
 
-# ------------------ Load Excel File Path ------------------ #
-excel_file = st.session_state.get("uploaded_file_path")
+# ------------------ Load Camper Data ------------------ #
+excel_file = st.session_state.get("uploaded_file_path", "uploaded_camper_data.xlsx")
 
-if not excel_file or not os.path.exists(excel_file):
+if not os.path.exists(excel_file):
     st.error("❌ Camper data file not found. Please contact the admin.")
     st.stop()
 
-# ------------------ Load Camper Data ------------------ #
 try:
     df = pd.read_excel(excel_file)
 except Exception as e:
     st.error(f"❌ Error reading camper data file: {e}")
     st.stop()
 
-# ------------------ Validate Columns ------------------ #
+# Ensure columns are standardized
 required_columns = ["Name", "Camp", "Status", "Check-in Time"]
 missing_cols = [col for col in required_columns if col not in df.columns]
 
@@ -34,6 +33,7 @@ if missing_cols:
 camper_name = st.selectbox("Select Your Name", sorted(df["Name"].dropna().unique()))
 
 if st.button("Check In"):
+    # Find camper row
     idx = df[df["Name"] == camper_name].index
 
     if not idx.empty:
