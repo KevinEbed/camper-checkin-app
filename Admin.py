@@ -28,9 +28,16 @@ if uploaded_file:
         if not normalized_required_cols.issubset(normalized_df_cols):
             st.error("❌ Excel must include: Name, Camp, Status, Check-in Time")
         else:
-            # Save uploaded file for camper view (as campers.xlsx)
-            with open("campers.xlsx", "wb") as f:
+            # Save uploaded file using its original name
+            filename = uploaded_file.name
+            save_path = os.path.join("uploaded_files", filename)
+            os.makedirs("uploaded_files", exist_ok=True)
+            with open(save_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
+
+            # Store the path in session_state for camper.py to access
+            st.session_state["uploaded_file_path"] = save_path
+
             st.success("✅ File uploaded and saved successfully.")
 
             selected_camp = st.selectbox("View campers by camp", sorted(df["Camp"].unique()))
@@ -50,5 +57,6 @@ if uploaded_file:
                 file_name="updated_checkins.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
     except Exception as e:
         st.error(f"⚠️ Error reading file: {e}")
