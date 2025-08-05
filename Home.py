@@ -3,6 +3,18 @@ import pandas as pd
 from datetime import datetime
 import os
 
+
+st.write("📂 Current Working Directory:", os.getcwd())
+
+excel_file = os.path.join("uploaded_files", "latest_camper_data.xlsx")
+st.write("🔍 Looking for file at:", excel_file)
+
+if not os.path.exists(excel_file):
+    st.error("❌ Camper data file not found. Please contact the admin.")
+    st.stop()
+else:
+    st.success("✅ Camper file found!")
+
 # ------------------ Page Config ------------------ #
 st.set_page_config(page_title="Camper Check-in", page_icon="🎒", layout="centered")
 st.title("🎒 Camper Check-in")
