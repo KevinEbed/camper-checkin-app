@@ -1,62 +1,30 @@
 import streamlit as st
 import pandas as pd
+from utils import load_camper_data, save_camper_data
 from io import BytesIO
-import os
-from datetime import datetime
 
-# ------------------ Page Config ------------------ #
-st.set_page_config(page_title="Admin Dashboard", page_icon="🛠️", layout="wide")
-st.title("🛠️ Admin Panel")
+st.set_page_config(page_title="Admin Dashboard", page_icon="🔐")
 
-# ------------------ Password protection ------------------ #
-password = st.text_input("Enter admin password", type="password")
-if password != "admin123":
-    st.warning("Access denied")
-    st.stop()
+st.title("🔐 Admin Dashboard")
 
-# ------------------ File uploader ------------------ #
-uploaded_file = st.file_uploader("Upload Camper Excel File (.xlsx)", type=["xlsx"])
+uploaded_file = st.file_uploader("📤 Upload Camper Excel List", type=["xlsx"])
 
 if uploaded_file:
-    try:
-        df = pd.read_excel(uploaded_file)
-        required_cols = {"Name", "Camp", "Status", "Check-in Time"}
+    df_uploaded = pd.read_excel(uploaded_file)
+    save_camper_data(df_uploaded)
+    st.success("Camper list uploaded and saved!")
 
-        # Normalize column names
-        df.columns = df.columns.str.strip()
-        normalized_df_cols = {col.strip().lower() for col in df.columns}
-        normalized_required_cols = {col.lower() for col in required_cols}
+st.markdown("---")
+st.header("📊 Camper Check-in Status")
 
-        if not normalized_required_cols.issubset(normalized_df_cols):
-            st.error("❌ Excel must include: Name, Camp, Status, Check-in Time")
-        else:
-            # Save file to a shared path
-            os.makedirs("uploaded_files", exist_ok=True)
-            shared_path = os.path.join("uploaded_files", "latest_camper_data.xlsx")
-            with open(shared_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+df = load_camper_data()
 
-            st.success("✅ File uploaded and saved successfully.")
-            st.write(f"📁 File saved at: {shared_path}")
+if df.empty:
+    st.warning("No camper data available.")
+else:
+    st.dataframe(df, use_container_width=True)
 
-            # Display campers per camp
-            selected_camp = st.selectbox("View campers by camp", sorted(df["Camp"].dropna().unique()))
-            filtered_df = df[df["Camp"] == selected_camp]
-
-            st.write(f"### Campers in {selected_camp}")
-            st.dataframe(filtered_df)
-
-            # Download button for updated sheet
-            buffer = BytesIO()
-            df.to_excel(buffer, index=False, engine='openpyxl')
-            buffer.seek(0)
-
-            st.download_button(
-                label="⬇️ Download Updated Sheet",
-                data=buffer,
-                file_name="updated_checkins.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-    except Exception as e:
-        st.error(f"⚠️ Error reading file: {e}")
+    # Download updated sheet
+    buffer = BytesIO()
+    df.to_excel(buffer, index=False)
+    st.download_button("📥 Download Updated List", buffer.getvalue(), file_name="updated_checkin_list.xlsx", mime="application/vnd.ms-excel")
